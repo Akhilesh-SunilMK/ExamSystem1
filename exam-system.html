@@ -537,9 +537,12 @@
     }
 
     var users = loadUsers();
+    var existingKey = Object.keys(users).filter(function (u) {
+      return u.toLowerCase() === username.toLowerCase();
+    })[0];
 
     if (loginMode === 'register') {
-      if (users.hasOwnProperty(username)) {
+      if (existingKey) {
         errEl.textContent = 'That username already exists. Try logging in instead.';
         return;
       }
@@ -552,12 +555,21 @@
       showToast('Account created!');
       completeLogin(username);
     } else {
-      if (!users.hasOwnProperty(username) || users[username] !== password) {
+      if (!existingKey || users[existingKey] !== password) {
         errEl.textContent = 'Invalid username or password.';
         return;
       }
-      completeLogin(username);
+      completeLogin(existingKey);
     }
+  });
+
+  ['login-username', 'login-password'].forEach(function (fieldId) {
+    $(fieldId).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $('btn-login-submit').click();
+      }
+    });
   });
 
   $('btn-logout').addEventListener('click', function () {
