@@ -55,7 +55,7 @@
     border: 1px solid var(--border);
   }
   .hidden { display: none !important; }
-  input[type="text"], input[type="number"] {
+  input[type="text"], input[type="number"], input[type="password"] {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--border);
@@ -84,6 +84,10 @@
 
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
   .row > * { flex: 1; }
+
+  /* Login screen */
+  #screen-login .card { text-align: center; max-width: 380px; margin: 0 auto; }
+  #screen-login p { color: var(--muted); }
 
   /* Start screen */
   #screen-start .card { text-align: center; }
@@ -251,11 +255,37 @@
 <div class="app">
   <header>
     <h1>📝 Online Examination System</h1>
-    <span class="pill" id="header-pill">Ready</span>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="pill" id="header-pill">Ready</span>
+      <button class="btn-secondary hidden" id="btn-logout" style="padding:6px 14px; font-size:13px;">Logout</button>
+    </div>
   </header>
 
+  <!-- LOGIN SCREEN -->
+  <div id="screen-login" class="hidden">
+    <div class="card">
+      <h2 id="login-heading">Login</h2>
+      <p id="login-subtext">Enter your credentials to continue.</p>
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="e.g. jane_doe">
+      <br><br>
+      <label>Password</label>
+      <div style="position:relative;">
+        <input type="password" id="login-password" placeholder="Enter password" style="padding-right:70px;">
+        <button type="button" id="btn-toggle-password" class="link-btn" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:13px;">Show</button>
+      </div>
+      <br>
+      <button class="btn-primary" id="btn-login-submit" style="width:100%;">Login</button>
+      <p id="login-error" style="color: var(--danger); font-weight:600;"></p>
+      <p style="margin-top:14px;">
+        <span id="login-toggle-text">Don't have an account?</span>
+        <button class="link-btn" id="btn-toggle-mode" type="button">Create one</button>
+      </p>
+    </div>
+  </div>
+
   <!-- START SCREEN -->
-  <div id="screen-start">
+  <div id="screen-start" class="hidden">
     <div class="card">
       <h2>Welcome</h2>
       <p>Enter your name to begin the exam, or manage questions in the admin panel.</p>
@@ -338,6 +368,9 @@
   'use strict';
 
   var STORAGE_KEY = 'examSystem_questions_v1';
+  var USERS_KEY = 'examSystem_users_v1';
+  var SESSION_KEY = 'examSystem_session_user';
+  var loginMode = 'login'; // 'login' or 'register'
 
   var DEFAULT_QUESTIONS = [
     {
@@ -402,20 +435,34 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
   }
 
+  function loadUsers() {
+    try {
+      var raw = localStorage.getItem(USERS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) { /* ignore corrupt storage */ }
+    return {};
+  }
+
+  function saveUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
   // ---------- Utility ----------
   function $(id) { return document.getElementById(id); }
 
   function showScreen(name) {
-    ['start', 'exam', 'result', 'admin'].forEach(function (s) {
+    ['login', 'start', 'exam', 'result', 'admin'].forEach(function (s) {
       $('screen-' + s).classList.toggle('hidden', s !== name);
     });
     var pillText = {
+      login: 'Login Required',
       start: 'Ready',
       exam: 'In Progress',
       result: 'Completed',
       admin: 'Admin Mode'
     };
     $('header-pill').textContent = pillText[name] || '';
+    $('btn-logout').classList.toggle('hidden', name === 'login');
   }
 
   function showToast(msg) {
@@ -439,6 +486,101 @@
     }
     return copy;
   }
+
+  // ---------- Login Screen ----------
+  function setLoginMode(mode) {
+    loginMode = mode;
+    $('login-error').textContent = '';
+    if (mode === 'register') {
+      $('login-heading').textContent = 'Create Account';
+      $('login-subtext').textContent = 'Choose a username and password to register.';
+      $('btn-login-submit').textContent = 'Create Account';
+      $('login-toggle-text').textContent = 'Already have an account?';
+      $('btn-toggle-mode').textContent = 'Log in';
+    } else {
+      $('login-heading').textContent = 'Login';
+      $('login-subtext').textContent = 'Enter your credentials to continue.';
+      $('btn-login-submit').textContent = 'Login';
+      $('login-toggle-text').textContent = "Don't have an account?";
+      $('btn-toggle-mode').textContent = 'Create one';
+    }
+  }
+
+  $('btn-toggle-mode').addEventListener('click', function () {
+    setLoginMode(loginMode === 'login' ? 'register' : 'login');
+  });
+
+  $('btn-toggle-password').addEventListener('click', function () {
+    var pwField = $('login-password');
+    var showing = pwField.type === 'text';
+    pwField.type = showing ? 'password' : 'text';
+    $('btn-toggle-password').textContent = showing ? 'Show' : 'Hide';
+  });
+
+  function completeLogin(username) {
+    sessionStorage.setItem(SESSION_KEY, username);
+    $('login-username').value = '';
+    $('login-password').value = '';
+    $('login-error').textContent = '';
+    $('student-name').value = username;
+    showScreen('start');
+  }
+
+  $('btn-login-submit').addEventListener('click', function () {
+    var username = $('login-username').value.trim();
+    var password = $('login-password').value;
+    var errEl = $('login-error');
+
+    if (!username || !password) {
+      errEl.textContent = 'Please enter both username and password.';
+      return;
+    }
+
+    var users = loadUsers();
+    var existingKey = Object.keys(users).filter(function (u) {
+      return u.toLowerCase() === username.toLowerCase();
+    })[0];
+
+    if (loginMode === 'register') {
+      if (existingKey) {
+        errEl.textContent = 'That username already exists. Try logging in instead.';
+        return;
+      }
+      if (password.length < 4) {
+        errEl.textContent = 'Password must be at least 4 characters.';
+        return;
+      }
+      users[username] = password;
+      saveUsers(users);
+      showToast('Account created!');
+      completeLogin(username);
+    } else {
+      if (!existingKey || users[existingKey] !== password) {
+        errEl.textContent = 'Invalid username or password.';
+        return;
+      }
+      completeLogin(existingKey);
+    }
+  });
+
+  ['login-username', 'login-password'].forEach(function (fieldId) {
+    $(fieldId).addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        $('btn-login-submit').click();
+      }
+    });
+  });
+
+  $('btn-logout').addEventListener('click', function () {
+    clearInterval(state.timerInterval);
+    sessionStorage.removeItem(SESSION_KEY);
+    $('login-username').value = '';
+    $('login-password').value = '';
+    setLoginMode('login');
+    resetToStart();
+    showScreen('login');
+  });
 
   // ---------- Start Screen ----------
   $('btn-start-exam').addEventListener('click', function () {
@@ -831,7 +973,17 @@
   if (!localStorage.getItem(STORAGE_KEY)) {
     saveQuestions(DEFAULT_QUESTIONS);
   }
-  showScreen('start');
+
+  setLoginMode('login');
+  var sessionUser = sessionStorage.getItem(SESSION_KEY);
+  var existingUsers = loadUsers();
+  if (sessionUser && existingUsers.hasOwnProperty(sessionUser)) {
+    $('student-name').value = sessionUser;
+    showScreen('start');
+  } else {
+    sessionStorage.removeItem(SESSION_KEY);
+    showScreen('login');
+  }
 
 })();
 </script>
