@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Online Examination System</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .app {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    font-size: 22px;
+    margin: 0;
+  }
+  .pill {
+    background: var(--primary);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border: 1px solid var(--border);
+  }
+  .hidden { display: none !important; }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+    margin-top: 6px;
+  }
+  label { font-weight: 600; font-size: 14px; color: var(--muted); }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-secondary { background: #e2e8f0; color: var(--text); }
+  .btn-secondary:hover { background: #cbd5e1; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-danger:hover { opacity: 0.85; }
+  .btn-success { background: var(--success); color: white; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > * { flex: 1; }
+
+  /* Start screen */
+  #screen-start .card { text-align: center; }
+  #screen-start p { color: var(--muted); }
+
+  /* Exam screen */
+  .exam-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .timer {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--danger);
+    background: #fee2e2;
+    padding: 6px 14px;
+    border-radius: 8px;
+  }
+  .progress-track {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.2s;
+  }
+  .q-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .q-nav-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background: #e2e8f0;
+    color: var(--text);
+    font-size: 13px;
+    padding: 0;
+  }
+  .q-nav-btn.answered { background: #bfdbfe; }
+  .q-nav-btn.current { background: var(--primary); color: white; }
+
+  .question-text {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .option {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .option:hover { background: #f8fafc; }
+  .option.selected { border-color: var(--primary); background: #eff6ff; }
+  .option input { margin-right: 10px; }
+
+  .exam-nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+
+  /* Result screen */
+  .score-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 10px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    margin: 0 auto 20px;
+  }
+  .score-circle .big { font-size: 32px; font-weight: 800; }
+  .score-circle .small { font-size: 13px; color: var(--muted); }
+
+  .review-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .review-item.correct { border-left: 5px solid var(--success); }
+  .review-item.incorrect { border-left: 5px solid var(--danger); }
+  .tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+  }
+  .tag.correct { background: #dcfce7; color: var(--success); }
+  .tag.incorrect { background: #fee2e2; color: var(--danger); }
+
+  /* Admin screen */
+  .admin-q {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .admin-q-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    margin-top: 6px;
+    resize: vertical;
+    font-family: inherit;
+  }
+  .opt-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .opt-row input[type="text"] { margin-top: 0; }
+  .link-btn {
+    background: none;
+    color: var(--primary);
+    padding: 4px 6px;
+    font-size: 14px;
+    text-decoration: underline;
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 30px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>📝 Online Examination System</h1>
+    <span class="pill" id="header-pill">Ready</span>
+  </header>
+
+  <!-- START SCREEN -->
+  <div id="screen-start">
+    <div class="card">
+      <h2>Welcome</h2>
+      <p>Enter your name to begin the exam, or manage questions in the admin panel.</p>
+      <label>Your Name</label>
+      <input type="text" id="student-name" placeholder="e.g. Jane Doe">
+      <br><br>
+      <label>Time Limit (minutes)</label>
+      <input type="number" id="time-limit" value="10" min="1" max="180">
+      <br><br>
+      <div class="row">
+        <button class="btn-primary" id="btn-start-exam">Start Exam</button>
+        <button class="btn-secondary" id="btn-open-admin">Admin: Manage Questions</button>
+      </div>
+      <p id="start-error" style="color: var(--danger); font-weight:600;"></p>
+    </div>
+  </div>
+
+  <!-- EXAM SCREEN -->
+  <div id="screen-exam" class="hidden">
+    <div class="exam-top">
+      <div><strong id="exam-student-name"></strong></div>
+      <div class="timer" id="timer-display">00:00</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="q-nav" id="q-nav"></div>
+    <div class="card">
+      <div class="question-text" id="question-text"></div>
+      <div id="options-container"></div>
+      <div class="exam-nav-buttons">
+        <button class="btn-secondary" id="btn-prev">← Previous</button>
+        <button class="btn-primary" id="btn-next">Next →</button>
+      </div>
+    </div>
+    <br>
+    <div style="text-align:center;">
+      <button class="btn-success" id="btn-submit">Submit Exam</button>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="screen-result" class="hidden">
+    <div class="card" style="text-align:center;">
+      <h2 id="result-heading"></h2>
+      <div class="score-circle">
+        <div class="big" id="result-score-pct"></div>
+        <div class="small" id="result-score-frac"></div>
+      </div>
+      <p id="result-time-taken" style="color:var(--muted);"></p>
+      <button class="btn-primary" id="btn-view-review">Review Answers</button>
+      <button class="btn-secondary" id="btn-restart">Back to Start</button>
+    </div>
+    <div id="review-container" class="hidden" style="margin-top:20px;"></div>
+  </div>
+
+  <!-- ADMIN SCREEN -->
+  <div id="screen-admin" class="hidden">
+    <div class="card">
+      <h2>Admin: Manage Questions</h2>
+      <p style="color:var(--muted);">Questions are saved in your browser's local storage.</p>
+      <div id="admin-questions-list"></div>
+      <button class="btn-secondary" id="btn-add-question">+ Add New Question</button>
+      <hr style="margin:20px 0; border-color:var(--border);">
+      <div class="row">
+        <button class="btn-primary" id="btn-save-questions">Save All</button>
+        <button class="btn-danger" id="btn-reset-questions">Reset to Defaults</button>
+        <button class="btn-secondary" id="btn-back-start">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Frontend-only demo &middot; data stored in browser localStorage</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'examSystem_questions_v1';
+
+  var DEFAULT_QUESTIONS = [
+    {
+      id: 1,
+      text: 'What does HTML stand for?',
+      options: ['Hyper Text Markup Language', 'High Tech Modern Language', 'Hyperlink and Text Markup Language', 'Home Tool Markup Language'],
+      correctIndex: 0
+    },
+    {
+      id: 2,
+      text: 'Which CSS property is used to change the text color of an element?',
+      options: ['font-color', 'text-color', 'color', 'background-color'],
+      correctIndex: 2
+    },
+    {
+      id: 3,
+      text: 'Which keyword is used to declare a variable that cannot be reassigned in JavaScript?',
+      options: ['var', 'let', 'const', 'static'],
+      correctIndex: 2
+    },
+    {
+      id: 4,
+      text: 'What does CSS stand for?',
+      options: ['Computer Style Sheets', 'Cascading Style Sheets', 'Creative Style System', 'Colorful Style Sheets'],
+      correctIndex: 1
+    },
+    {
+      id: 5,
+      text: 'Which HTML tag is used to link an external JavaScript file?',
+      options: ['<script>', '<js>', '<link>', '<javascript>'],
+      correctIndex: 0
+    }
+  ];
+
+  // ---------- State ----------
+  var state = {
+    questions: [],
+    studentName: '',
+    timeLimitMinutes: 10,
+    currentIndex: 0,
+    answers: {},      // questionId -> selected option index
+    timerInterval: null,
+    secondsRemaining: 0,
+    startTime: null,
+    endTime: null,
+    submitted: false
+  };
+
+  // ---------- Storage ----------
+  function loadQuestions() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) { /* ignore corrupt storage */ }
+    return JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+  }
+
+  function saveQuestions(questions) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(questions));
+  }
+
+  // ---------- Utility ----------
+  function $(id) { return document.getElementById(id); }
+
+  function showScreen(name) {
+    ['start', 'exam', 'result', 'admin'].forEach(function (s) {
+      $('screen-' + s).classList.toggle('hidden', s !== name);
+    });
+    var pillText = {
+      start: 'Ready',
+      exam: 'In Progress',
+      result: 'Completed',
+      admin: 'Admin Mode'
+    };
+    $('header-pill').textContent = pillText[name] || '';
+  }
+
+  function showToast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  function formatTime(totalSeconds) {
+    var m = Math.floor(totalSeconds / 60);
+    var s = totalSeconds % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function shuffleCopy(arr) {
+    var copy = arr.slice();
+    for (var i = copy.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+    }
+    return copy;
+  }
+
+  // ---------- Start Screen ----------
+  $('btn-start-exam').addEventListener('click', function () {
+    var name = $('student-name').value.trim();
+    var minutes = parseInt($('time-limit').value, 10);
+    var errEl = $('start-error');
+
+    if (!name) {
+      errEl.textContent = 'Please enter your name to continue.';
+      return;
+    }
+    if (!minutes || minutes < 1) {
+      errEl.textContent = 'Please enter a valid time limit.';
+      return;
+    }
+    var questions = loadQuestions();
+    if (questions.length === 0) {
+      errEl.textContent = 'No questions available. Please add questions in Admin panel first.';
+      return;
+    }
+    errEl.textContent = '';
+
+    state.questions = questions;
+    state.studentName = name;
+    state.timeLimitMinutes = minutes;
+    state.currentIndex = 0;
+    state.answers = {};
+    state.submitted = false;
+    state.secondsRemaining = minutes * 60;
+    state.startTime = new Date();
+
+    $('exam-student-name').textContent = 'Candidate: ' + name;
+    buildQuestionNav();
+    renderQuestion();
+    startTimer();
+    showScreen('exam');
+  });
+
+  $('btn-open-admin').addEventListener('click', function () {
+    renderAdminScreen();
+    showScreen('admin');
+  });
+
+  // ---------- Timer ----------
+  function startTimer() {
+    clearInterval(state.timerInterval);
+    updateTimerDisplay();
+    state.timerInterval = setInterval(function () {
+      state.secondsRemaining--;
+      updateTimerDisplay();
+      if (state.secondsRemaining <= 0) {
+        clearInterval(state.timerInterval);
+        showToast("Time's up! Submitting exam...");
+        submitExam();
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    $('timer-display').textContent = formatTime(Math.max(0, state.secondsRemaining));
+    var warnThreshold = 60;
+    $('timer-display').style.background = state.secondsRemaining <= warnThreshold ? '#fecaca' : '#fee2e2';
+  }
+
+  // ---------- Exam Rendering ----------
+  function buildQuestionNav() {
+    var nav = $('q-nav');
+    nav.innerHTML = '';
+    state.questions.forEach(function (q, idx) {
+      var btn = document.createElement('button');
+      btn.className = 'q-nav-btn';
+      btn.textContent = (idx + 1);
+      btn.addEventListener('click', function () {
+        state.currentIndex = idx;
+        renderQuestion();
+      });
+      nav.appendChild(btn);
+    });
+  }
+
+  function updateQuestionNavClasses() {
+    var nav = $('q-nav');
+    Array.prototype.forEach.call(nav.children, function (btn, idx) {
+      btn.classList.toggle('current', idx === state.currentIndex);
+      var qId = state.questions[idx].id;
+      btn.classList.toggle('answered', state.answers.hasOwnProperty(qId));
+    });
+  }
+
+  function renderQuestion() {
+    var q = state.questions[state.currentIndex];
+    $('question-text').textContent = (state.currentIndex + 1) + '. ' + q.text;
+
+    var container = $('options-container');
+    container.innerHTML = '';
+    q.options.forEach(function (optText, idx) {
+      var label = document.createElement('label');
+      label.className = 'option';
+      if (state.answers[q.id] === idx) label.classList.add('selected');
+
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q_' + q.id;
+      input.value = idx;
+      input.checked = state.answers[q.id] === idx;
+      input.addEventListener('change', function () {
+        state.answers[q.id] = idx;
+        renderQuestion();
+        updateQuestionNavClasses();
+        updateProgress();
+      });
+
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(optText));
+      container.appendChild(label);
+    });
+
+    $('btn-prev').disabled = state.currentIndex === 0;
+    $('btn-next').textContent = state.currentIndex === state.questions.length - 1 ? 'Next →' : 'Next →';
+    $('btn-next').disabled = state.currentIndex === state.questions.length - 1;
+
+    updateQuestionNavClasses();
+    updateProgress();
+  }
+
+  function updateProgress() {
+    var answeredCount = Object.keys(state.answers).length;
+    var pct = (answeredCount / state.questions.length) * 100;
+    $('progress-fill').style.width = pct + '%';
+  }
+
+  $('btn-prev').addEventListener('click', function () {
+    if (state.currentIndex > 0) {
+      state.currentIndex--;
+      renderQuestion();
+    }
+  });
+
+  $('btn-next').addEventListener('click', function () {
+    if (state.currentIndex < state.questions.length - 1) {
+      state.currentIndex++;
+      renderQuestion();
+    }
+  });
+
+  $('btn-submit').addEventListener('click', function () {
+    var answeredCount = Object.keys(state.answers).length;
+    var unanswered = state.questions.length - answeredCount;
+    var proceed = true;
+    if (unanswered > 0) {
+      proceed = confirm('You have ' + unanswered + ' unanswered question(s). Submit anyway?');
+    } else {
+      proceed = confirm('Submit the exam now?');
+    }
+    if (proceed) submitExam();
+  });
+
+  // ---------- Submission & Scoring ----------
+  function submitExam() {
+    if (state.submitted) return;
+    state.submitted = true;
+    clearInterval(state.timerInterval);
+    state.endTime = new Date();
+
+    var correctCount = 0;
+    state.questions.forEach(function (q) {
+      if (state.answers[q.id] === q.correctIndex) correctCount++;
+    });
+
+    var total = state.questions.length;
+    var pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+    $('result-heading').textContent = 'Exam Results for ' + state.studentName;
+    $('result-score-pct').textContent = pct + '%';
+    $('result-score-frac').textContent = correctCount + ' / ' + total + ' correct';
+
+    var scoreCircleEl = document.querySelector('.score-circle');
+    scoreCircleEl.style.borderColor = pct >= 70 ? '#16a34a' : (pct >= 40 ? '#f59e0b' : '#dc2626');
+
+    var elapsedSec = Math.round((state.endTime - state.startTime) / 1000);
+    $('result-time-taken').textContent = 'Time taken: ' + formatTime(elapsedSec);
+
+    $('review-container').classList.add('hidden');
+    $('review-container').innerHTML = '';
+    $('btn-view-review').textContent = 'Review Answers';
+
+    showScreen('result');
+  }
+
+  $('btn-view-review').addEventListener('click', function () {
+    var container = $('review-container');
+    if (!container.classList.contains('hidden')) {
+      container.classList.add('hidden');
+      $('btn-view-review').textContent = 'Review Answers';
+      return;
+    }
+    container.innerHTML = '';
+    state.questions.forEach(function (q, idx) {
+      var userAns = state.answers[q.id];
+      var isCorrect = userAns === q.correctIndex;
+
+      var item = document.createElement('div');
+      item.className = 'review-item ' + (isCorrect ? 'correct' : 'incorrect');
+
+      var head = document.createElement('div');
+      head.innerHTML = '<strong>' + (idx + 1) + '. ' + escapeHtml(q.text) + '</strong>' +
+        '<span class="tag ' + (isCorrect ? 'correct' : 'incorrect') + '">' + (isCorrect ? 'Correct' : 'Incorrect') + '</span>';
+      item.appendChild(head);
+
+      var yourAnsText = document.createElement('p');
+      yourAnsText.style.margin = '8px 0 2px';
+      yourAnsText.innerHTML = '<em>Your answer:</em> ' + (userAns !== undefined ? escapeHtml(q.options[userAns]) : '<span style="color:var(--muted)">No answer</span>');
+      item.appendChild(yourAnsText);
+
+      if (!isCorrect) {
+        var correctAnsText = document.createElement('p');
+        correctAnsText.style.margin = '2px 0';
+        correctAnsText.innerHTML = '<em>Correct answer:</em> ' + escapeHtml(q.options[q.correctIndex]);
+        item.appendChild(correctAnsText);
+      }
+
+      container.appendChild(item);
+    });
+    container.classList.remove('hidden');
+    $('btn-view-review').textContent = 'Hide Review';
+  });
+
+  $('btn-restart').addEventListener('click', function () {
+    resetToStart();
+  });
+
+  function resetToStart() {
+    clearInterval(state.timerInterval);
+    state.currentIndex = 0;
+    state.answers = {};
+    state.submitted = false;
+    $('student-name').value = '';
+    $('start-error').textContent = '';
+    showScreen('start');
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ---------- Admin Screen ----------
+  var adminQuestions = [];
+
+  function renderAdminScreen() {
+    adminQuestions = JSON.parse(JSON.stringify(loadQuestions()));
+    renderAdminList();
+  }
+
+  function renderAdminList() {
+    var list = $('admin-questions-list');
+    list.innerHTML = '';
+    if (adminQuestions.length === 0) {
+      var empty = document.createElement('p');
+      empty.style.color = 'var(--muted)';
+      empty.textContent = 'No questions yet. Click "Add New Question" to create one.';
+      list.appendChild(empty);
+    }
+    adminQuestions.forEach(function (q, qIdx) {
+      var block = document.createElement('div');
+      block.className = 'admin-q';
+
+      var head = document.createElement('div');
+      head.className = 'admin-q-head';
+      var titleLabel = document.createElement('label');
+      titleLabel.textContent = 'Question ' + (qIdx + 1);
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn-danger';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', function () {
+        adminQuestions.splice(qIdx, 1);
+        renderAdminList();
+      });
+      head.appendChild(titleLabel);
+      head.appendChild(delBtn);
+      block.appendChild(head);
+
+      var textArea = document.createElement('textarea');
+      textArea.rows = 2;
+      textArea.value = q.text;
+      textArea.placeholder = 'Enter question text';
+      textArea.addEventListener('input', function () {
+        q.text = textArea.value;
+      });
+      block.appendChild(textArea);
+
+      q.options.forEach(function (optText, optIdx) {
+        var row = document.createElement('div');
+        row.className = 'opt-row';
+
+        var radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'correct_' + qIdx;
+        radio.checked = q.correctIndex === optIdx;
+        radio.title = 'Mark as correct answer';
+        radio.addEventListener('change', function () {
+          q.correctIndex = optIdx;
+        });
+
+        var optInput = document.createElement('input');
+        optInput.type = 'text';
+        optInput.value = optText;
+        optInput.placeholder = 'Option ' + (optIdx + 1);
+        optInput.addEventListener('input', function () {
+          q.options[optIdx] = optInput.value;
+        });
+
+        var removeOptBtn = document.createElement('button');
+        removeOptBtn.className = 'link-btn';
+        removeOptBtn.textContent = 'remove';
+        removeOptBtn.addEventListener('click', function () {
+          if (q.options.length <= 2) {
+            showToast('A question needs at least 2 options.');
+            return;
+          }
+          q.options.splice(optIdx, 1);
+          if (q.correctIndex >= q.options.length) q.correctIndex = 0;
+          renderAdminList();
+        });
+
+        row.appendChild(radio);
+        row.appendChild(optInput);
+        row.appendChild(removeOptBtn);
+        block.appendChild(row);
+      });
+
+      var addOptBtn = document.createElement('button');
+      addOptBtn.className = 'link-btn';
+      addOptBtn.style.marginTop = '8px';
+      addOptBtn.textContent = '+ add option';
+      addOptBtn.addEventListener('click', function () {
+        q.options.push('');
+        renderAdminList();
+      });
+      block.appendChild(addOptBtn);
+
+      list.appendChild(block);
+    });
+  }
+
+  $('btn-add-question').addEventListener('click', function () {
+    var newId = Date.now();
+    adminQuestions.push({
+      id: newId,
+      text: '',
+      options: ['', ''],
+      correctIndex: 0
+    });
+    renderAdminList();
+  });
+
+  $('btn-save-questions').addEventListener('click', function () {
+    for (var i = 0; i < adminQuestions.length; i++) {
+      var q = adminQuestions[i];
+      if (!q.text.trim()) {
+        showToast('Question ' + (i + 1) + ' is missing text.');
+        return;
+      }
+      for (var j = 0; j < q.options.length; j++) {
+        if (!q.options[j].trim()) {
+          showToast('Question ' + (i + 1) + ' has an empty option.');
+          return;
+        }
+      }
+    }
+    saveQuestions(adminQuestions);
+    showToast('Questions saved successfully!');
+  });
+
+  $('btn-reset-questions').addEventListener('click', function () {
+    if (confirm('Reset all questions to the default set? This cannot be undone.')) {
+      adminQuestions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+      saveQuestions(adminQuestions);
+      renderAdminList();
+      showToast('Reset to default questions.');
+    }
+  });
+
+  $('btn-back-start').addEventListener('click', function () {
+    showScreen('start');
+  });
+
+  // ---------- Init ----------
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    saveQuestions(DEFAULT_QUESTIONS);
+  }
+  showScreen('start');
+
+})();
+</script>
+</body>
+</html>
