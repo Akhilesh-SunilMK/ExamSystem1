@@ -270,8 +270,11 @@
       <input type="text" id="login-username" placeholder="e.g. jane_doe">
       <br><br>
       <label>Password</label>
-      <input type="password" id="login-password" placeholder="Enter password">
-      <br><br>
+      <div style="position:relative;">
+        <input type="password" id="login-password" placeholder="Enter password" style="padding-right:70px;">
+        <button type="button" id="btn-toggle-password" class="link-btn" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:13px;">Show</button>
+      </div>
+      <br>
       <button class="btn-primary" id="btn-login-submit" style="width:100%;">Login</button>
       <p id="login-error" style="color: var(--danger); font-weight:600;"></p>
       <p style="margin-top:14px;">
@@ -505,6 +508,13 @@
 
   $('btn-toggle-mode').addEventListener('click', function () {
     setLoginMode(loginMode === 'login' ? 'register' : 'login');
+  });
+
+  $('btn-toggle-password').addEventListener('click', function () {
+    var pwField = $('login-password');
+    var showing = pwField.type === 'text';
+    pwField.type = showing ? 'password' : 'text';
+    $('btn-toggle-password').textContent = showing ? 'Show' : 'Hide';
   });
 
   function completeLogin(username) {
